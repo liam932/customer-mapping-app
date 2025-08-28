@@ -33,23 +33,54 @@ function requireAuth(req, res, next) {
   }
 }
 
-// Serve static files with authentication (except login page)
-app.use('/login.html', express.static('public'));
-app.use('/', (req, res, next) => {
-  if (req.path === '/login.html' || req.path === '/api/login') {
-    return next();
-  }
+// Authentication Routes (must be before static file serving)
+app.post('/api/login', (req, res) => {
+  const { username, password } = req.body;
   
-  if (req.session && req.session.authenticated) {
-    return express.static('public')(req, res, next);
+  if (username === AUTH_USERNAME && password === AUTH_PASSWORD) {
+    req.session.authenticated = true;
+    req.session.user = username;
+    
+    // Generate a simple token for frontend use
+    const token = Buffer.from(`${username}:${Date.now()}`).toString('base64');
+    
+    res.json({ 
+      success: true, 
+      token: token,
+      message: 'Login successful' 
+    });
   } else {
-    // Redirect to login page
-    if (req.path === '/') {
+    res.status(401).json({ 
+      success: false, 
+      message: 'Invalid credentials' 
+    });
+  }
+});
+
+app.post('/api/logout', (req, res) => {
+  req.session.destroy();
+  res.json({ success: true, message: 'Logout successful' });
+});
+
+// Serve login page without authentication
+app.get('/login.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'login.html'));
+});
+
+// Authentication check middleware for protected routes
+function checkAuth(req, res, next) {
+  if (req.session && req.session.authenticated) {
+    return next();
+  } else {
+    if (req.path === '/' || req.path === '/index.html') {
       return res.redirect('/login.html');
     }
     return res.status(401).json({ error: 'Authentication required' });
   }
-});
+}
+
+// Serve protected static files
+app.use('/', checkAuth, express.static('public'));
 
 // Load real customer data from JSON file
 let allCustomers = [];
@@ -138,34 +169,6 @@ function loadCustomerData() {
 // Load data on startup
 loadCustomerData();
 
-// Authentication Routes
-app.post('/api/login', (req, res) => {
-  const { username, password } = req.body;
-  
-  if (username === AUTH_USERNAME && password === AUTH_PASSWORD) {
-    req.session.authenticated = true;
-    req.session.user = username;
-    
-    // Generate a simple token for frontend use
-    const token = Buffer.from(`${username}:${Date.now()}`).toString('base64');
-    
-    res.json({ 
-      success: true, 
-      token: token,
-      message: 'Login successful' 
-    });
-  } else {
-    res.status(401).json({ 
-      success: false, 
-      message: 'Invalid credentials' 
-    });
-  }
-});
-
-app.post('/api/logout', (req, res) => {
-  req.session.destroy();
-  res.json({ success: true, message: 'Logout successful' });
-});
 
 // API Routes (Protected)
 // Serve Google Maps API key
