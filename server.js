@@ -25,10 +25,11 @@ app.use(cors());
 app.use(express.json());
 app.use(session({
   secret: process.env.SESSION_SECRET || 'your-secret-key-change-this-in-production',
-  resave: false,
-  saveUninitialized: false,
+  resave: true,
+  saveUninitialized: true,
+  name: 'customer-app-session',
   cookie: { 
-    secure: process.env.NODE_ENV === 'production',
+    secure: false, // Temporarily disable for debugging
     httpOnly: true,
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
     sameSite: 'lax'
