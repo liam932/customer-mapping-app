@@ -11,6 +11,15 @@ const PORT = process.env.PORT || 3001;
 const AUTH_USERNAME = process.env.AUTH_USERNAME || 'admin';
 const AUTH_PASSWORD = process.env.AUTH_PASSWORD || 'demo123';
 
+// Log startup configuration (without sensitive data)
+console.log('🚀 Starting Customer Mapping App...');
+console.log(`📍 Port: ${PORT}`);
+console.log(`🔐 Auth Username: ${AUTH_USERNAME ? '***@***.***' : 'Not set'}`);
+console.log(`🗝️  Auth Password: ${AUTH_PASSWORD ? '***' : 'Not set'}`);
+console.log(`🌍 Google Maps API: ${process.env.GOOGLE_MAPS_API_KEY ? 'Set' : 'Not set'}`);
+console.log(`🔒 Session Secret: ${process.env.SESSION_SECRET ? 'Set' : 'Using default (insecure)'}`);
+console.log(`🏗️  Node Environment: ${process.env.NODE_ENV || 'development'}`);
+
 // Middleware
 app.use(cors());
 app.use(express.json());
@@ -106,8 +115,17 @@ let customersWithBoth = [];
 function loadCustomerData() {
   try {
     const dataPath = path.join(__dirname, 'customer_mapping_data_enhanced.json');
+    console.log(`📄 Loading customer data from: ${dataPath}`);
+    
+    if (!fs.existsSync(dataPath)) {
+      throw new Error(`Customer data file not found: ${dataPath}`);
+    }
+    
     const rawData = fs.readFileSync(dataPath, 'utf8');
+    console.log(`📊 Raw data size: ${rawData.length} characters`);
+    
     allCustomers = JSON.parse(rawData);
+    console.log(`👥 Parsed ${allCustomers.length} customer records`);
     
     // Add interaction recency calculation for each customer
     allCustomers = allCustomers.map(customer => {
@@ -171,12 +189,17 @@ function loadCustomerData() {
     console.log(`  - With both jobs & orders: ${customersWithBoth.length}`);
     console.log(`  - With neither: ${allCustomers.length - customersWithJobs.length - (customersWithOrders.length - customersWithBoth.length)}`);
   } catch (error) {
-    console.error('Error loading customer data:', error);
+    console.error('❌ CRITICAL ERROR loading customer data:', error.message);
+    console.error('📍 Stack trace:', error.stack);
+    
+    // Initialize empty arrays but don't crash the server
     allCustomers = [];
     customersWithJobs = [];
     customersWithoutJobs = [];
     customersWithOrders = [];
     customersWithBoth = [];
+    
+    console.warn('⚠️  Server will start with empty customer data');
   }
 }
 
