@@ -20,8 +20,37 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             padding: 20px;
-            text-align: center;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header-text {
+            text-align: left;
+        }
+        
+        .logout-button {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .logout-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-1px);
         }
         
         .dashboard {
@@ -426,8 +455,19 @@
 </head>
 <body>
     <div class="header">
-        <h1>Customer Mapping Dashboard</h1>
-        <p>Visualize customer locations and service usage patterns</p>
+        <div class="header-content">
+            <div class="header-text">
+                <h1>Customer Mapping Dashboard</h1>
+                <p>Visualize customer locations and service usage patterns</p>
+            </div>
+            <button id="logoutButton" class="logout-button" title="Logout">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
+                    <polyline points="16,17 21,12 16,7"/>
+                    <line x1="21" y1="12" x2="9" y2="12"/>
+                </svg>
+            </button>
+        </div>
     </div>
     
     <div class="dashboard">
@@ -1878,9 +1918,51 @@
         }
 
         
+        // Check authentication on page load
+        async function checkAuthentication() {
+            try {
+                const response = await fetch('/api/config');
+                if (!response.ok) {
+                    window.location.href = '/login.html';
+                    return false;
+                }
+                return true;
+            } catch (error) {
+                console.error('Authentication check failed:', error);
+                window.location.href = '/login.html';
+                return false;
+            }
+        }
+
+        // Handle logout
+        async function handleLogout() {
+            try {
+                await fetch('/api/logout', { method: 'POST' });
+                localStorage.removeItem('authToken');
+                window.location.href = '/login.html';
+            } catch (error) {
+                console.error('Logout error:', error);
+                window.location.href = '/login.html';
+            }
+        }
+
         // Initialize the application when page loads
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', async function() {
             console.log('🚀 Starting Customer Mapping Dashboard...');
+            
+            // Check authentication first
+            const isAuthenticated = await checkAuthentication();
+            if (!isAuthenticated) {
+                return;
+            }
+            
+            // Set up logout button
+            const logoutButton = document.getElementById('logoutButton');
+            if (logoutButton) {
+                logoutButton.addEventListener('click', handleLogout);
+            }
+            
+            // Load the application
             loadGoogleMapsAPI();
         });
     </script>
