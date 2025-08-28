@@ -396,6 +396,9 @@ app.post('/api/customers', requireAuth, (req, res) => {
   res.status(201).json(newCustomer);
 });
 
-app.listen(PORT, () => {
-  console.log(`Customer mapping server running on http://localhost:${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Customer mapping server running on port ${PORT}`);
+}).on('error', (err) => {
+  console.error('Server failed to start:', err);
+  process.exit(1);
 });
