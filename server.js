@@ -8,8 +8,8 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // Authentication configuration
-const AUTH_USERNAME = 'process.env.AUTH_USERNAME || 'admin'';
-const AUTH_PASSWORD = 'process.env.AUTH_PASSWORD || 'demo123'';
+const AUTH_USERNAME = process.env.AUTH_USERNAME || 'admin';
+const AUTH_PASSWORD = process.env.AUTH_PASSWORD || 'demo123';
 
 // Middleware
 app.use(cors());
