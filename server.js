@@ -33,6 +33,20 @@ function requireAuth(req, res, next) {
   }
 }
 
+// Health check endpoint for Railway (no auth required)
+app.get('/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'OK', 
+    timestamp: new Date().toISOString(),
+    service: 'customer-mapping-app' 
+  });
+});
+
+// Root path health check (for Railway's default health check)
+app.get('/healthz', (req, res) => {
+  res.status(200).send('OK');
+});
+
 // Authentication Routes (must be before static file serving)
 app.post('/api/login', (req, res) => {
   const { username, password } = req.body;

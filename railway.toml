@@ -1,0 +1,17 @@
+[build]
+# Railway build configuration
+
+[deploy]
+# Health check configuration
+healthcheckPath = "/health"
+healthcheckTimeout = 30
+restartPolicyType = "on_failure"
+
+# Start command (Railway will auto-detect this from package.json, but we can specify it)
+startCommand = "npm start"
+
+[variables]
+# These will be set in Railway dashboard, but we can document them here
+# GOOGLE_MAPS_API_KEY = "your-google-maps-api-key"
+# SESSION_SECRET = "your-session-secret-32-chars"
+# NODE_ENV = "production"
