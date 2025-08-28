@@ -29,7 +29,9 @@ app.use(session({
   saveUninitialized: false,
   cookie: { 
     secure: process.env.NODE_ENV === 'production',
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    sameSite: 'lax'
   }
 }));
 
@@ -64,6 +66,10 @@ app.post('/api/login', (req, res) => {
     req.session.authenticated = true;
     req.session.user = username;
     
+    console.log('✅ Login successful for:', username);
+    console.log('📝 Session ID:', req.sessionID);
+    console.log('🔐 Session authenticated:', req.session.authenticated);
+    
     // Generate a simple token for frontend use
     const token = Buffer.from(`${username}:${Date.now()}`).toString('base64');
     
@@ -92,9 +98,14 @@ app.get('/login.html', (req, res) => {
 
 // Authentication check middleware for protected routes
 function checkAuth(req, res, next) {
+  console.log(`🔍 Auth check for ${req.path} - Session ID: ${req.sessionID || 'none'}`);
+  console.log(`🔐 Session authenticated: ${req.session?.authenticated || 'false'}`);
+  
   if (req.session && req.session.authenticated) {
+    console.log('✅ Authentication passed');
     return next();
   } else {
+    console.log('❌ Authentication failed - redirecting to login');
     if (req.path === '/' || req.path === '/index.html') {
       return res.redirect('/login.html');
     }

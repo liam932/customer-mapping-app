@@ -245,7 +245,7 @@
             
             // Show loading state
             button.classList.add('loading');
-            spinner.style.display = 'inline-block';
+            if (spinner) spinner.style.display = 'inline-block';
             button.innerHTML = '<span class="spinner"></span>Signing in...';
             
             try {
@@ -279,7 +279,7 @@
                 
                 // Reset button state
                 button.classList.remove('loading');
-                spinner.style.display = 'none';
+                if (spinner) spinner.style.display = 'none';
                 button.innerHTML = 'Sign In';
                 button.style.background = '';
                 
