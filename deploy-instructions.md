@@ -24,8 +24,10 @@ git push -u origin main
 
 In Railway dashboard:
 1. Go to your project → Variables tab
-2. Add this variable:
+2. Add these variables:
    - **GOOGLE_MAPS_API_KEY**: `your-actual-google-maps-api-key-here`
+   - **SESSION_SECRET**: `generate-a-random-32-character-string-here`
+   - **NODE_ENV**: `production`
 
 ## Step 4: Get Your Google Maps API Key
 
@@ -44,13 +46,21 @@ If you don't have one yet:
 Once deployed, Railway will give you a URL like:
 `https://customer-mapping-app-production-xxxx.railway.app`
 
+### Login Credentials:
+- **Username**: `edusupplies@edusupplies.com.au`  
+- **Password**: `M1croscopes!`
+
 Test these features:
-- ✅ Map loads correctly
-- ✅ Customer markers appear
-- ✅ Filtering works (All Data, Jobs Only, etc.)
-- ✅ Toggle for non-customers works
+- ✅ Login page loads with professional design
+- ✅ Authentication works with correct credentials
+- ✅ Dashboard redirects to login when not authenticated  
+- ✅ Map loads correctly after login
+- ✅ Customer markers appear (892 customers)
+- ✅ Filtering works (All Data, Jobs Only, Orders Only, Both)
+- ✅ Toggle for non-customers works (+1,961 organizations)
 - ✅ Address search functions
-- ✅ Legend displays correctly
+- ✅ Legend displays correctly (Interaction Recency)
+- ✅ Logout button works properly
 
 ## Troubleshooting
 
