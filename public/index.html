@@ -1,0 +1,1888 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Mapping Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f7fa;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .dashboard {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            height: calc(100vh - 80px);
+        }
+        
+        .sidebar {
+            background: white;
+            border-right: 1px solid #e1e8ed;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        .map-container {
+            position: relative;
+            background: white;
+        }
+        
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .controls {
+            margin-bottom: 20px;
+        }
+        
+        .filter-group {
+            margin-bottom: 15px;
+        }
+        
+        .filter-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #2c3e50;
+            cursor: pointer;
+        }
+        
+        .filter-group {
+            margin-bottom: 20px;
+            position: relative;
+        }
+        
+        .filter-group select, .filter-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            background-color: white;
+            cursor: pointer;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .filter-group select:hover {
+            border-color: #2196f3;
+        }
+        
+        .filter-group select:focus {
+            outline: none;
+            border-color: #2196f3;
+            box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.2);
+        }
+        
+        .filter-group select:disabled {
+            background-color: #f5f5f5;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        
+        .filter-group select option {
+            padding: 8px;
+        }
+        
+        .filter-group select::-ms-expand {
+            display: none;
+        }
+        
+        .filter-group select {
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            background-image: url('data:image/svg+xml;charset=US-ASCII,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 5"><path fill="%23666" d="M2 0L0 2h4L2 0zM2 5L0 3h4L2 5z"/></svg>');
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            background-size: 12px;
+            padding-right: 30px;
+        }
+        
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+        
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+            position: absolute;
+        }
+        
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            border-radius: 34px;
+            transition: .4s;
+        }
+        
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            border-radius: 50%;
+            transition: .4s;
+        }
+        
+        .toggle-switch input:checked + .toggle-slider {
+            background-color: #2196f3;
+        }
+        
+        .toggle-switch input:checked + .toggle-slider:before {
+            transform: translateX(26px);
+        }
+        
+        .toggle-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 5px;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .toggle-label-left {
+            margin-left: 4px;
+        }
+        
+        .toggle-label-right {
+            margin-right: 4px;
+        }
+        
+        .toggle-label-active {
+            font-weight: bold;
+            color: #2196f3;
+        }
+        
+        .radio-group {
+            margin-top: 8px;
+        }
+        
+        .radio-label {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: normal;
+        }
+        
+        .radio-label input[type="radio"] {
+            display: none;
+        }
+        
+        .radio-custom {
+            width: 16px;
+            height: 16px;
+            border: 2px solid #ddd;
+            border-radius: 50%;
+            margin-right: 10px;
+            position: relative;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+        
+        .radio-label input[type="radio"]:checked + .radio-custom {
+            border-color: #2196f3;
+        }
+        
+        .radio-label input[type="radio"]:checked + .radio-custom:after {
+            content: '';
+            width: 8px;
+            height: 8px;
+            background: #2196f3;
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        
+        .radio-label:hover .radio-custom {
+            border-color: #2196f3;
+        }
+        
+        .search-group {
+            margin-bottom: 20px;
+        }
+        
+        .search-container {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+        
+        .search-container input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            transition: border-color 0.2s ease;
+        }
+        
+        .search-container input:focus {
+            outline: none;
+            border-color: #2196f3;
+            box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.2);
+        }
+        
+        .search-container button {
+            padding: 10px 15px;
+            background: #2196f3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.2s ease;
+        }
+        
+        .search-container button:hover {
+            background: #1976d2;
+        }
+        
+        .search-container button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        #clearSearchButton {
+            background: #f44336;
+            padding: 10px 12px;
+        }
+        
+        #clearSearchButton:hover {
+            background: #d32f2f;
+        }
+        
+        .search-results {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #e1e8ed;
+            border-radius: 4px;
+            background: white;
+            display: none;
+        }
+        
+        .search-result-item {
+            padding: 10px;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        
+        .search-result-item:hover {
+            background: #f5f5f5;
+        }
+        
+        .search-result-item:last-child {
+            border-bottom: none;
+        }
+        
+        .search-result-main {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 2px;
+        }
+        
+        .search-result-detail {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .customer-item {
+            padding: 12px;
+            border: 1px solid #e1e8ed;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: #f8f9fa;
+        }
+        
+        .customer-item:hover {
+            background: #e3f2fd;
+            border-color: #2196f3;
+            transform: translateY(-1px);
+        }
+        
+        .customer-item.selected {
+            background: #2196f3;
+            color: white;
+            border-color: #1976d2;
+        }
+        
+        .customer-name {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        
+        .customer-usage {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+        
+        .customer-usage small {
+            font-size: 10px;
+            opacity: 0.7;
+            display: block;
+            margin-top: 2px;
+        }
+        
+        .usage-high { color: #4caf50; }
+        .usage-medium { color: #ff9800; }
+        .usage-low { color: #f44336; }
+        
+        .legend {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 1000;
+        }
+        
+        .legend h4 {
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .stats-summary {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        
+        .stats-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            text-align: center;
+        }
+        
+        .stat-item {
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 4px;
+        }
+        
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Customer Mapping Dashboard</h1>
+        <p>Visualize customer locations and service usage patterns</p>
+    </div>
+    
+    <div class="dashboard">
+        <div class="sidebar">
+            <div class="stats-summary">
+                <h3>Overview</h3>
+                <div class="stats-grid">
+                    <div class="stat-item" style="grid-column: span 2;">
+                        <div class="stat-number" id="totalCustomers">0</div>
+                        <div class="stat-label" id="customersLabel">Total Organizations</div>
+                        <div id="dataTypeIndicator" style="font-size: 12px; color: #666; margin-top: 4px;"></div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="serviceRevenue">$0</div>
+                        <div class="stat-label">Service Revenue</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="salesRevenue">$0</div>
+                        <div class="stat-label">Sales Revenue</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="filteredServiceRevenue">$0</div>
+                        <div class="stat-label">Filtered Service Revenue</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="filteredSalesRevenue">$0</div>
+                        <div class="stat-label">Filtered Sales Revenue</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="servicePercentage">0%</div>
+                        <div class="stat-label">% of Service Revenue</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="salesPercentage">0%</div>
+                        <div class="stat-label">% of Sales Revenue</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="controls">
+                <h3>Address Search</h3>
+                <div class="search-group">
+                    <div class="search-container">
+                        <input type="text" id="addressSearch" placeholder="Search for address, city, or landmark...">
+                        <button id="searchButton" type="button">🔍</button>
+                        <button id="clearSearchButton" type="button" style="display: none;">✕</button>
+                    </div>
+                    <div id="searchResults" class="search-results"></div>
+                </div>
+                
+                <h3>Data Type</h3>
+                <div class="filter-group">
+                    <label for="dataFilter">Show Data For</label>
+                    <select id="dataFilter">
+                        <option value="all">All Data</option>
+                        <option value="jobs_only">Jobs Only</option>
+                        <option value="orders_only">Orders Only</option>
+                        <option value="both">Jobs and Orders</option>
+                    </select>
+                </div>
+                
+
+                <h3>Organization Display</h3>
+                <div class="filter-group">
+                    <label for="showNonCustomersToggle">Show Non-Customer Organizations</label>
+                    <div class="toggle-switch">
+                        <input type="checkbox" id="showNonCustomersToggle">
+                        <span class="toggle-slider"></span>
+                    </div>
+                </div>
+
+                <h3>Filters</h3>
+                <div class="filter-group">
+                    <label for="organizationFilter">Organization Type</label>
+                    <select id="organizationFilter">
+                        <option value="all">All Organizations</option>
+                        <option value="school">School</option>
+                        <option value="university">University</option>
+                        <option value="industry">Industry</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label for="regionFilter">Region</label>
+                    <select id="regionFilter">
+                        <option value="all">All Regions</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label for="stateFilter">State</label>
+                    <select id="stateFilter">
+                        <option value="all">All States</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label for="jobCountFilter">Job Count</label>
+                    <select id="jobCountFilter">
+                        <option value="all">All Job Counts</option>
+                        <option value="1">1 Job</option>
+                        <option value="2">2 Jobs</option>
+                        <option value="3">3 Jobs</option>
+                        <option value="4+">4+ Jobs</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label for="dateFromFilter">Date From</label>
+                    <input type="date" id="dateFromFilter">
+                </div>
+                
+                <div class="filter-group">
+                    <label for="dateToFilter">Date To</label>
+                    <input type="date" id="dateToFilter">
+                </div>
+                
+            </div>
+        </div>
+        
+        <div class="map-container">
+            <div id="map"></div>
+            
+            <div class="legend">
+                <h4>Interaction Recency</h4>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #4caf50;"></div>
+                    <span>Recent (< 12 months)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #ff9800;"></div>
+                    <span>Moderate (12-24 months)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #f44336;"></div>
+                    <span>Old (> 24 months)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #9e9e9e;"></div>
+                    <span>No Service Date</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Google Maps API will be loaded dynamically -->
+
+    <script>
+        let map;
+        let customers = [];
+        let markers = [];
+        let selectedCustomer = null;
+        let infoWindow;
+        let geocoder;
+        let coordinateCache = new Map();
+        let dataLoaded = false;
+        let searchMarkers = [];
+        let searchInfoWindow;
+
+        // Disable all filters during loading
+        function setFiltersEnabled(enabled, message) {
+            const filters = ['organizationFilter', 'regionFilter', 'stateFilter', 'jobCountFilter', 'dateFromFilter', 'dateToFilter'];
+            filters.forEach(filterId => {
+                const filterElement = document.getElementById(filterId);
+                if (filterElement) {
+                    filterElement.disabled = !enabled;
+                }
+            });
+            
+            if (message && !enabled) {
+                console.log('🔄 ' + message);
+            }
+        }
+        
+
+        // Show loading state
+        function showLoadingState() {
+            // Just disable filters during loading - no customer list to update
+            setFiltersEnabled(false);
+            console.log('Loading customer data...');
+        }
+
+        // Load Google Maps API dynamically with API key from server
+        async function loadGoogleMapsAPI() {
+            try {
+                // Fetch API key from server
+                const response = await fetch('/api/config');
+                const config = await response.json();
+                
+                if (!config.googleMapsApiKey) {
+                    throw new Error('Google Maps API key not configured');
+                }
+                
+                // Create and load the Google Maps script
+                const script = document.createElement('script');
+                script.src = `https://maps.googleapis.com/maps/api/js?key=${config.googleMapsApiKey}&callback=initMap`;
+                script.async = true;
+                script.defer = true;
+                document.head.appendChild(script);
+                
+                console.log('🔑 Google Maps API script loaded with server-provided key');
+            } catch (error) {
+                console.error('Failed to load Google Maps API:', error);
+                alert('Failed to load map. Please check your configuration.');
+            }
+        }
+
+        // Initialize the application (called by Google Maps API)
+        window.initMap = async function() {
+            // Initialize the map centered on Australia
+            map = new google.maps.Map(document.getElementById('map'), {
+                zoom: 5,
+                center: { lat: -25.2744, lng: 133.7751 },
+                mapTypeId: google.maps.MapTypeId.ROADMAP
+            });
+            
+            infoWindow = new google.maps.InfoWindow();
+            searchInfoWindow = new google.maps.InfoWindow();
+            geocoder = new google.maps.Geocoder();
+            
+            console.log('🗺️ Google Maps initialized with geocoding support');
+            
+            // Show loading state
+            showLoadingState();
+            
+            await loadCustomers();
+            await loadFilterOptions();
+            
+            // Mark data as loaded and enable filters
+            dataLoaded = true;
+            setFiltersEnabled(true);
+            
+            updateLegend();
+            updateStats();
+            renderCustomerList();
+            setupEventListeners();
+        }
+
+        // This function is now handled in the main initMap function above
+
+        // Load customer data from API
+        async function loadCustomers() {
+            try {
+                const dataFilter = document.getElementById('dataFilter');
+                const showNonCustomersToggle = document.getElementById('showNonCustomersToggle');
+                const filterValue = dataFilter ? dataFilter.value : 'all';
+                const showNonCustomers = showNonCustomersToggle ? showNonCustomersToggle.checked : false;
+                
+                // Build URL with parameters
+                const params = new URLSearchParams();
+                params.append('filterType', filterValue);
+                if (showNonCustomers) params.append('showNonCustomers', 'true');
+                
+                const url = `/api/customers${params.toString() ? '?' + params.toString() : ''}`;
+                
+                console.log(`🔍 Loading customers with filter: ${filterValue}, showNonCustomers: ${showNonCustomers}`);
+                console.log(`📡 URL: ${url}`);
+                
+                const response = await fetch(url);
+                customers = await response.json();
+                
+                console.log(`📦 Loaded ${customers.length} customers with filter: ${filterValue}`);
+                
+                // Debug: Check state distribution in loaded data
+                const stateCounts = {};
+                customers.forEach(c => {
+                    const state = c.location.state;
+                    stateCounts[state] = (stateCounts[state] || 0) + 1;
+                });
+                console.log('[DATA] State distribution:', stateCounts);
+                
+                // Don't add markers here - let renderCustomerList() handle it with proper filtering
+            } catch (error) {
+                console.error('Error loading customers:', error);
+            }
+        }
+
+        // Load filter options from API
+        async function loadFilterOptions() {
+            try {
+                const dataFilter = document.getElementById('dataFilter');
+                const showNonCustomersToggle = document.getElementById('showNonCustomersToggle');
+                const filterValue = dataFilter ? dataFilter.value : 'all';
+                const showNonCustomers = showNonCustomersToggle ? showNonCustomersToggle.checked : false;
+                
+                // Build URL parameters
+                const params = new URLSearchParams();
+                params.append('filterType', filterValue);
+                if (showNonCustomers) params.append('showNonCustomers', 'true');
+                
+                const urlParams = params.toString() ? '?' + params.toString() : '';
+                
+                // Load regions
+                const regionsResponse = await fetch(`/api/regions${urlParams}`);
+                const regions = await regionsResponse.json();
+                const regionSelect = document.getElementById('regionFilter');
+                
+                // Clear existing options except 'All Regions'
+                if (regionSelect) {
+                    regionSelect.innerHTML = '<option value="all">All Regions</option>';
+                    
+                    if (regions.length > 0) {
+                        regions.forEach(region => {
+                            const option = document.createElement('option');
+                            option.value = region;
+                            option.textContent = region;
+                            regionSelect.appendChild(option);
+                        });
+                        console.log(`Loaded ${regions.length} regions`);
+                    } else {
+                        console.warn('No regions loaded');
+                    }
+                }
+
+                // Load states
+                const statesResponse = await fetch(`/api/states${urlParams}`);
+                const states = await statesResponse.json();
+                const stateSelect = document.getElementById('stateFilter');
+                
+                // Clear existing options except 'All States'
+                if (stateSelect) {
+                    stateSelect.innerHTML = '<option value="all">All States</option>';
+                    
+                    if (states.length > 0) {
+                        states.forEach(state => {
+                            const option = document.createElement('option');
+                            option.value = state;
+                            option.textContent = state;
+                            stateSelect.appendChild(option);
+                        });
+                        console.log(`Loaded ${states.length} states`);
+                    } else {
+                        console.warn('No states loaded');
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading filter options:', error);
+            }
+        }
+
+        // Enhanced coordinate fetching with geocoding
+        async function getAccurateCoordinates(customer) {
+            // Check cache first
+            const cacheKey = `${customer.id}_${customer.contact.address}`;
+            if (coordinateCache.has(cacheKey)) {
+                return coordinateCache.get(cacheKey);
+            }
+            
+            // If coordinates exist and are valid, use them (pre-geocoded)
+            if (customer.location.lat && customer.location.lng && 
+                customer.location.lat >= -44 && customer.location.lat <= -10 &&
+                customer.location.lng >= 113 && customer.location.lng <= 154) {
+                const coords = { lat: customer.location.lat, lng: customer.location.lng, source: 'pre-geocoded' };
+                coordinateCache.set(cacheKey, coords);
+                console.log(`✅ Using pre-geocoded coordinates for ${customer.name}`);
+                return coords;
+            }
+            
+            // Try geocoding the address
+            if (customer.contact.address && customer.contact.address.trim()) {
+                try {
+                    const coords = await geocodeCustomerAddress(customer);
+                    coordinateCache.set(cacheKey, coords);
+                    return coords;
+                } catch (error) {
+                    console.warn(`Geocoding failed for ${customer.name}:`, error);
+                }
+            }
+            
+            // Fall back to city/state approximation
+            const coords = getApproximateCoordinates(customer.location.city, customer.location.state);
+            coords.source = 'approximation';
+            coordinateCache.set(cacheKey, coords);
+            return coords;
+        }
+        
+        // Geocode a customer's address
+        async function geocodeCustomerAddress(customer) {
+            return new Promise((resolve, reject) => {
+                const fullAddress = `${customer.contact.address}, Australia`;
+                
+                geocoder.geocode({
+                    address: fullAddress,
+                    region: 'AU',
+                    componentRestrictions: { country: 'AU' }
+                }, (results, status) => {
+                    if (status === 'OK' && results && results.length > 0) {
+                        const location = results[0].geometry.location;
+                        const lat = location.lat();
+                        const lng = location.lng();
+                        
+                        // Validate coordinates are in Australia
+                        if (lat >= -44 && lat <= -10 && lng >= 113 && lng <= 154) {
+                            console.log(`✅ Geocoded ${customer.name}: ${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+                            resolve({ lat, lng, source: 'geocoded' });
+                        } else {
+                            console.warn(`❌ Invalid coordinates for ${customer.name}: ${lat}, ${lng}`);
+                            reject(new Error('Invalid coordinates'));
+                        }
+                    } else {
+                        reject(new Error(`Geocoding failed: ${status}`));
+                    }
+                });
+            });
+        }
+        
+        // Add customer markers to map
+        async function addMarkersToMap(customersToShow = null) {
+            // Clear existing markers
+            console.log(`🧹 Clearing ${markers.length} existing markers`);
+            
+            // Debug: Check if any existing markers are for Wycheproof
+            const wycheproofMarkers = markers.filter(marker => 
+                marker.title && marker.title.toLowerCase().includes('wycheproof')
+            );
+            if (wycheproofMarkers.length > 0) {
+                console.log(`🧹 Removing ${wycheproofMarkers.length} Wycheproof markers from map`);
+            }
+            
+            markers.forEach(marker => marker.setMap(null));
+            markers = [];
+
+            // Use filtered customers if provided, otherwise use all customers
+            const customersData = customersToShow || customers;
+
+            console.log(`\ud83d\uddfa\ufe0f Processing ${customersData.length} customers for map markers...`);
+            
+            // Debug: Check if Wycheproof is in customers to be mapped
+            const wycheproof = customersData.find(c => c.name && c.name.toLowerCase().includes('wycheproof'));
+            if (wycheproof) {
+                console.warn('⚠️ Wycheproof will be added to map:', {
+                    name: wycheproof.name,
+                    hasJobs: wycheproof.jobs?.length || 0,
+                    hasOrders: wycheproof.orders?.length || 0,
+                    location: wycheproof.location
+                });
+            }
+
+            // Separate customers into pre-geocoded and needs-geocoding
+            const preGeocodedCustomers = [];
+            const needsGeocodingCustomers = [];
+            
+            customersData.forEach(customer => {
+                if (customer.location.lat && customer.location.lng && 
+                    customer.location.lat >= -44 && customer.location.lat <= -10 &&
+                    customer.location.lng >= 113 && customer.location.lng <= 154) {
+                    preGeocodedCustomers.push(customer);
+                } else {
+                    needsGeocodingCustomers.push(customer);
+                }
+            });
+            
+            console.log(`⚡ Fast processing ${preGeocodedCustomers.length} pre-geocoded customers...`);
+            console.log(`🐌 Slow processing ${needsGeocodingCustomers.length} customers needing geocoding...`);
+            
+            // Fast batch processing for pre-geocoded customers (no delays needed)
+            preGeocodedCustomers.forEach(customer => {
+                const dataFilter = document.getElementById('dataFilter');
+                const filterValue = dataFilter ? dataFilter.value : 'all';
+                
+                let color, size;
+                
+                // Check if this is a non-customer (no jobs or orders)
+                const hasJobs = customer.jobs && customer.jobs.length > 0 && customer.totalRevenue > 0;
+                const hasOrders = customer.orders && customer.orders.length > 0 && customer.totalOrderRevenue > 0;
+                const isNonCustomer = !hasJobs && !hasOrders;
+                
+                if (isNonCustomer) {
+                    // Non-customers use organization type color and fixed size
+                    color = getOrganizationTypeColor(customer.organizationType);
+                    size = 8;
+                } else {
+                    // Customers use interaction recency for color
+                    color = getInteractionRecencyColor(customer.lastInteractionDate);
+                    
+                    // Set size based on filter type
+                    switch (filterValue) {
+                        case 'jobs_only':
+                            size = getRevenueSize(customer.totalRevenue || 0);
+                            break;
+                        case 'orders_only':
+                            size = getRevenueSize(customer.totalOrderRevenue || 0);
+                            break;
+                        case 'both':
+                        case 'all':
+                        default:
+                            const combinedRevenue = (customer.totalRevenue || 0) + (customer.totalOrderRevenue || 0);
+                            size = getRevenueSize(combinedRevenue);
+                            break;
+                    }
+                }
+                
+                const coords = {
+                    lat: customer.location.lat,
+                    lng: customer.location.lng,
+                    source: 'pre-geocoded'
+                };
+                
+                const marker = createMarker(customer, coords, color, size);
+                markers.push(marker);
+            });
+            
+            // Slow sequential processing for customers needing geocoding
+            for (let i = 0; i < needsGeocodingCustomers.length; i++) {
+                const customer = needsGeocodingCustomers[i];
+                const dataFilter = document.getElementById('dataFilter');
+                const filterValue = dataFilter ? dataFilter.value : 'all';
+                
+                let color, size;
+                
+                // Check if this is a non-customer (no jobs or orders)
+                const hasJobs = customer.jobs && customer.jobs.length > 0 && customer.totalRevenue > 0;
+                const hasOrders = customer.orders && customer.orders.length > 0 && customer.totalOrderRevenue > 0;
+                const isNonCustomer = !hasJobs && !hasOrders;
+                
+                if (isNonCustomer) {
+                    // Non-customers use organization type color and fixed size
+                    color = getOrganizationTypeColor(customer.organizationType);
+                    size = 8;
+                } else {
+                    // Customers use interaction recency for color
+                    color = getInteractionRecencyColor(customer.lastInteractionDate);
+                    
+                    // Set size based on filter type
+                    switch (filterValue) {
+                        case 'jobs_only':
+                            size = getRevenueSize(customer.totalRevenue || 0);
+                            break;
+                        case 'orders_only':
+                            size = getRevenueSize(customer.totalOrderRevenue || 0);
+                            break;
+                        case 'both':
+                        case 'all':
+                        default:
+                            const combinedRevenue = (customer.totalRevenue || 0) + (customer.totalOrderRevenue || 0);
+                            size = getRevenueSize(combinedRevenue);
+                            break;
+                    }
+                }
+                
+                const coords = await getAccurateCoordinates(customer);
+                const marker = createMarker(customer, coords, color, size);
+                markers.push(marker);
+                
+                // Delay only for geocoding customers
+                if (i < needsGeocodingCustomers.length - 1) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                }
+            }
+            
+            console.log(`\u2705 Added ${markers.length} markers to map with enhanced positioning`);
+        }
+        
+        // Create a marker with click handler (extracted to avoid duplication)
+        function createMarker(customer, coords, color, size) {
+            const marker = new google.maps.Marker({
+                position: { lat: coords.lat, lng: coords.lng },
+                map: map,
+                icon: {
+                    path: google.maps.SymbolPath.CIRCLE,
+                    fillColor: color,
+                    fillOpacity: 0.8,
+                    strokeColor: '#fff',
+                    strokeWeight: 2,
+                    scale: size
+                },
+                title: `${customer.name} (${coords.source})`,
+                clickable: true,
+                cursor: 'pointer'
+            });
+
+            // Calculate job statistics
+            const numJobs = customer.jobs ? customer.jobs.length : 0;
+            const avgUnits = numJobs > 0 ? Math.round(customer.jobs.reduce((sum, job) => sum + (job.units || 0), 0) / numJobs) : 0;
+            const lastServiceFormatted = customer.lastServiceDate ? new Date(customer.lastServiceDate).toLocaleDateString('en-AU') : 'Never';
+            
+            // Calculate order statistics
+            const numOrders = customer.orders ? customer.orders.length : 0;
+            const orderRevenue = customer.totalOrderRevenue || 0;
+            const lastOrderFormatted = customer.lastOrderDate ? new Date(customer.lastOrderDate).toLocaleDateString('en-AU') : 'Never';
+            
+            // Create popup content with coordinate source info
+            const coordInfo = coords.source === 'geocoded' ? '\u2705 Geocoded' : 
+                             coords.source === 'pre-geocoded' ? '\ud83d\udcbe Pre-geocoded' :
+                             coords.source === 'database' ? '\ud83d\udcbe Database' : '\ud83d\uddfa\ufe0f Approximate';
+            
+            const popupContent = `
+                <div style="min-width: 300px;">
+                    <h3 style="margin: 0 0 10px 0; color: #2c3e50;">${customer.name}</h3>
+                    <p><strong>\ud83d\udccd Location:</strong> ${customer.location.city}, ${customer.location.state}</p>
+                    <p><strong>\ud83c\udfe0 Address:</strong> ${customer.contact.address}</p>
+                    <p><strong>\ud83c\udf0f Region:</strong> ${customer.region || 'Unknown'}</p>
+                    <p><strong>\ud83d\uddfa\ufe0f Coordinates:</strong> ${coordInfo}</p>
+                    <p><strong>\ud83c\udfdb\ufe0f Type:</strong> ${customer.organizationType}</p>
+                    <hr style="margin: 10px 0; border: 0; border-top: 1px solid #eee;">
+                    <p><strong>\ud83d\udd27 Jobs:</strong> ${numJobs} completed (\ud83d\udce6 ${avgUnits} avg units, \ud83d\udcb0 $${customer.totalRevenue.toLocaleString()})</p>
+                    <p><strong>\ud83d\udcc5 Last Service:</strong> ${lastServiceFormatted}</p>
+                    <p><strong>\ud83d\udecc Orders:</strong> ${numOrders} completed (\ud83d\udcb0 $${orderRevenue.toLocaleString()})</p>
+                    <p><strong>\ud83d\udcc5 Last Order:</strong> ${lastOrderFormatted}</p>
+                    <hr style="margin: 10px 0; border: 0; border-top: 1px solid #eee;">
+                    <p><strong>\ud83d\udce7 Email:</strong> <a href="mailto:${customer.contact.email}">${customer.contact.email}</a></p>
+                    <p><strong>\ud83d\udcde Phone:</strong> <a href="tel:${customer.contact.phone}">${customer.contact.phone}</a></p>
+                </div>
+            `;
+            
+            // Add click event with error handling and debugging
+            marker.addListener('click', async (event) => {
+                try {
+                    console.log(`🖱️ Marker clicked for ${customer.name} (ID: ${customer.id})`);
+                    console.log('📊 Customer data:', {
+                        name: customer.name,
+                        location: customer.location,
+                        organizationType: customer.organizationType,
+                        totalRevenue: customer.totalRevenue
+                    });
+                    
+                    // Set popup content and open
+                    infoWindow.setContent(popupContent);
+                    infoWindow.open(map, marker);
+                    
+                    // Select customer (async function)
+                    await selectCustomer(customer.id);
+                    
+                    console.log('✅ Marker click handled successfully');
+                } catch (error) {
+                    console.error('❌ Error handling marker click:', error);
+                }
+            });
+            
+            return marker;
+        }
+        
+        // Address search functionality
+        async function searchAddress(query) {
+            if (!query.trim()) return;
+            
+            const searchButton = document.getElementById('searchButton');
+            const searchResults = document.getElementById('searchResults');
+            
+            try {
+                searchButton.disabled = true;
+                searchButton.textContent = '⏳';
+                
+                // Clear previous search results
+                clearSearchMarkers();
+                
+                console.log(`🔍 Searching for: "${query}"`);
+                
+                // Use Google Geocoding API to search
+                const results = await geocodeSearch(query);
+                
+                if (results.length > 0) {
+                    displaySearchResults(results);
+                } else {
+                    showNoResults();
+                }
+                
+            } catch (error) {
+                console.error('Search error:', error);
+                showSearchError();
+            } finally {
+                searchButton.disabled = false;
+                searchButton.textContent = '🔍';
+            }
+        }
+        
+        // Geocode search query using Google Maps API
+        function geocodeSearch(query) {
+            return new Promise((resolve, reject) => {
+                geocoder.geocode({
+                    address: `${query}, Australia`,
+                    region: 'AU',
+                    componentRestrictions: { country: 'AU' }
+                }, (results, status) => {
+                    if (status === 'OK' && results) {
+                        console.log(`✅ Found ${results.length} search results`);
+                        resolve(results);
+                    } else {
+                        console.warn(`❌ Search failed: ${status}`);
+                        resolve([]);
+                    }
+                });
+            });
+        }
+        
+        // Display search results in dropdown
+        function displaySearchResults(results) {
+            const searchResults = document.getElementById('searchResults');
+            searchResults.innerHTML = '';
+            
+            results.slice(0, 5).forEach((result, index) => {
+                const resultItem = document.createElement('div');
+                resultItem.className = 'search-result-item';
+                
+                const mainText = result.formatted_address.split(',')[0];
+                const detailText = result.formatted_address.split(',').slice(1).join(',').trim();
+                
+                resultItem.innerHTML = `
+                    <div class="search-result-main">${mainText}</div>
+                    <div class="search-result-detail">${detailText}</div>
+                `;
+                
+                resultItem.addEventListener('click', () => {
+                    selectSearchResult(result, index);
+                });
+                
+                searchResults.appendChild(resultItem);
+            });
+            
+            searchResults.style.display = 'block';
+        }
+        
+        // Handle search result selection
+        function selectSearchResult(result, index) {
+            const location = result.geometry.location;
+            const lat = location.lat();
+            const lng = location.lng();
+            
+            console.log(`📍 Selected: ${result.formatted_address}`);
+            
+            // Clear previous search markers
+            clearSearchMarkers();
+            
+            // Create search marker
+            const searchMarker = new google.maps.Marker({
+                position: { lat, lng },
+                map: map,
+                icon: {
+                    path: google.maps.SymbolPath.CIRCLE,
+                    fillColor: '#ff0000',
+                    fillOpacity: 1,
+                    strokeColor: '#ffffff',
+                    strokeWeight: 3,
+                    scale: 10
+                },
+                title: 'Search Result',
+                zIndex: 1000
+            });
+            
+            // Create info window for search result
+            const infoContent = `
+                <div style="min-width: 250px;">
+                    <h3 style="margin: 0 0 10px 0; color: #2c3e50;">📍 Search Result</h3>
+                    <p><strong>Address:</strong> ${result.formatted_address}</p>
+                    <p><strong>Coordinates:</strong> ${lat.toFixed(6)}, ${lng.toFixed(6)}</p>
+                    <p><strong>Location Type:</strong> ${result.geometry.location_type}</p>
+                </div>
+            `;
+            
+            searchMarker.addListener('click', () => {
+                searchInfoWindow.setContent(infoContent);
+                searchInfoWindow.open(map, searchMarker);
+            });
+            
+            searchMarkers.push(searchMarker);
+            
+            // Center map on result
+            map.setCenter({ lat, lng });
+            map.setZoom(15);
+            
+            // Hide search results
+            document.getElementById('searchResults').style.display = 'none';
+            
+            // Auto-show info window
+            searchInfoWindow.setContent(infoContent);
+            searchInfoWindow.open(map, searchMarker);
+        }
+        
+        // Clear search markers
+        function clearSearchMarkers() {
+            searchMarkers.forEach(marker => marker.setMap(null));
+            searchMarkers = [];
+            searchInfoWindow.close();
+        }
+        
+        // Show no results message
+        function showNoResults() {
+            const searchResults = document.getElementById('searchResults');
+            searchResults.innerHTML = '<div class="search-result-item">No results found. Try a different search term.</div>';
+            searchResults.style.display = 'block';
+        }
+        
+        // Show search error message
+        function showSearchError() {
+            const searchResults = document.getElementById('searchResults');
+            searchResults.innerHTML = '<div class="search-result-item" style="color: #f44336;">Search error. Please try again.</div>';
+            searchResults.style.display = 'block';
+        }
+
+        // Get color based on interaction recency
+        function getInteractionRecencyColor(lastInteractionDate) {
+            if (!lastInteractionDate) return '#999999'; // Gray for no interaction data
+            
+            const lastInteraction = new Date(lastInteractionDate);
+            const now = new Date();
+            const monthsDiff = (now - lastInteraction) / (1000 * 60 * 60 * 24 * 30.44); // Average days per month
+            
+            if (monthsDiff < 12) return '#4caf50'; // Green - recent (< 12 months)
+            if (monthsDiff < 24) return '#ff9800'; // Orange - moderate (12-24 months)
+            return '#f44336'; // Red - old (> 24 months)
+        }
+        
+        // Get marker color based on organization type (for customers without jobs)
+        function getOrganizationTypeColor(organizationType) {
+            switch (organizationType) {
+                case 'school': return '#2196f3'; // Blue for schools
+                case 'university': return '#9c27b0'; // Purple for universities
+                case 'industry': return '#ff5722'; // Orange/red for industry
+                default: return '#607d8b'; // Blue-gray for unknown
+            }
+        }
+        
+        // Update legend based on current view
+        function updateLegend() {
+            const legend = document.querySelector('.legend');
+            const showNonCustomersToggle = document.getElementById('showNonCustomersToggle');
+            const showNonCustomers = showNonCustomersToggle ? showNonCustomersToggle.checked : false;
+            
+            if (showNonCustomers) {
+                // Show combined legend for both customers and non-customers
+                legend.innerHTML = `
+                    <h4>Legend</h4>
+                    <div style="margin-bottom: 10px;">
+                        <strong>Customers (Interaction Recency):</strong>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #4caf50;"></div>
+                        <span>Recent (< 12 months)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #ff9800;"></div>
+                        <span>Moderate (12-24 months)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #f44336;"></div>
+                        <span>Old (> 24 months)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #9e9e9e;"></div>
+                        <span>No Interaction Data</span>
+                    </div>
+                    <div style="margin: 10px 0; border-top: 1px solid #ddd; padding-top: 10px;">
+                        <strong>Non-Customers (Organization Type):</strong>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #2196f3;"></div>
+                        <span>School</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #9c27b0;"></div>
+                        <span>University</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #ff5722;"></div>
+                        <span>Industry</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #607d8b;"></div>
+                        <span>Unknown</span>
+                    </div>
+                `;
+            } else {
+                // Show interaction recency only
+                legend.innerHTML = `
+                    <h4>Interaction Recency</h4>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #4caf50;"></div>
+                        <span>Recent (< 12 months)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #ff9800;"></div>
+                        <span>Moderate (12-24 months)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #f44336;"></div>
+                        <span>Old (> 24 months)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #9e9e9e;"></div>
+                        <span>No Interaction Data</span>
+                    </div>
+                `;
+            }
+        }
+
+        // Get marker size based on total revenue
+        function getRevenueSize(totalRevenue) {
+            if (totalRevenue > 10000) return 12;
+            if (totalRevenue > 5000) return 10;
+            if (totalRevenue > 1000) return 8;
+            return 6;
+        }
+
+        // Handle customer click from HTML (wrapper for async function)
+        function handleCustomerClick(customerId) {
+            selectCustomer(customerId).catch(error => {
+                console.error('Error in handleCustomerClick:', error);
+            });
+        }
+        
+        // Select a customer
+        async function selectCustomer(customerId) {
+            try {
+                selectedCustomer = customerId;
+                const customer = customers.find(c => c.id === customerId);
+                
+                if (customer) {
+                    console.log(`Selecting customer: ${customer.name}`);
+                    
+                    // Get accurate coordinates
+                    const coords = await getAccurateCoordinates(customer);
+                    
+                    // Center map on customer
+                    map.setCenter({ lat: coords.lat, lng: coords.lng });
+                    map.setZoom(12);
+                } else {
+                    console.warn(`Customer not found with ID: ${customerId}`);
+                }
+            } catch (error) {
+                console.error('Error selecting customer:', error);
+            }
+        }
+
+        // Update statistics with separate service and sales revenue
+        function updateStats() {
+            if (!dataLoaded || !customers || customers.length === 0) {
+                return;
+            }
+
+            // Always calculate both service and sales revenue separately (no special handling needed)
+            updateStatsWithSeparateRevenue();
+        }
+        
+        // Update statistics with separate service and sales revenue
+        function updateStatsWithSeparateRevenue() {
+            const filteredCustomers = getFilteredCustomers();
+            const totalFilteredCustomers = filteredCustomers.length;
+            
+            // Determine current filter type
+            const dataFilter = document.getElementById('dataFilter');
+            const filterValue = dataFilter ? dataFilter.value : 'all';
+            
+            // Calculate total service revenue (from all customers with jobs)
+            const totalServiceRevenue = customers.reduce((sum, c) => sum + (c.totalRevenue || 0), 0);
+            
+            // Calculate total sales revenue (from all customers with orders)
+            const totalSalesRevenue = customers.reduce((sum, c) => sum + (c.totalOrderRevenue || 0), 0);
+            
+            // Calculate filtered service revenue
+            const filteredServiceRevenue = filteredCustomers.reduce((sum, c) => sum + (c.totalRevenue || 0), 0);
+            
+            // Calculate filtered sales revenue
+            const filteredSalesRevenue = filteredCustomers.reduce((sum, c) => sum + (c.totalOrderRevenue || 0), 0);
+            
+            // Calculate percentages
+            const servicePercentage = totalServiceRevenue > 0 ? 
+                (filteredServiceRevenue / totalServiceRevenue * 100).toFixed(1) : 0;
+            const salesPercentage = totalSalesRevenue > 0 ? 
+                (filteredSalesRevenue / totalSalesRevenue * 100).toFixed(1) : 0;
+            
+            // Update indicator to show current mode
+            let modeText = '';
+            switch (filterValue) {
+                case 'all':
+                    modeText = '📊 Showing all customers';
+                    break;
+                case 'jobs_only':
+                    modeText = '🔧 Showing customers with jobs only';
+                    break;
+                case 'orders_only':
+                    modeText = '🛒 Showing customers with orders only';
+                    break;
+                case 'both':
+                    modeText = '🔗 Showing customers with both jobs AND orders';
+                    break;
+                default:
+                    modeText = '📊 Showing all customers';
+            }
+            
+            // Update UI
+            document.getElementById('totalCustomers').textContent = totalFilteredCustomers.toLocaleString();
+            document.getElementById('serviceRevenue').textContent = '$' + totalServiceRevenue.toLocaleString();
+            document.getElementById('salesRevenue').textContent = '$' + totalSalesRevenue.toLocaleString();
+            document.getElementById('filteredServiceRevenue').textContent = '$' + filteredServiceRevenue.toLocaleString();
+            document.getElementById('filteredSalesRevenue').textContent = '$' + filteredSalesRevenue.toLocaleString();
+            document.getElementById('servicePercentage').textContent = servicePercentage + '%';
+            document.getElementById('salesPercentage').textContent = salesPercentage + '%';
+            document.getElementById('dataTypeIndicator').textContent = modeText;
+            
+            console.log('📊 Separate Revenue Stats:', {
+                mode: modeText,
+                totalCustomers: totalFilteredCustomers,
+                totalServiceRevenue,
+                totalSalesRevenue,
+                filteredServiceRevenue,
+                filteredSalesRevenue,
+                servicePercentage,
+                salesPercentage
+            });
+        }
+        
+        // Update statistics for customers without jobs
+        function updateStatsWithoutJobs() {
+            const filteredCustomers = getFilteredCustomers();
+            const totalFilteredCustomers = filteredCustomers.length;
+            
+            // Update UI - show zero revenue for all fields
+            document.getElementById('totalCustomers').textContent = totalFilteredCustomers.toLocaleString();
+            document.getElementById('serviceRevenue').textContent = '$0';
+            document.getElementById('salesRevenue').textContent = '$0';
+            document.getElementById('filteredServiceRevenue').textContent = '$0';
+            document.getElementById('filteredSalesRevenue').textContent = '$0';
+            document.getElementById('servicePercentage').textContent = 'N/A';
+            document.getElementById('salesPercentage').textContent = 'N/A';
+            
+            console.log('📊 Stats for customers without jobs:', {
+                total: totalFilteredCustomers
+            });
+        }
+
+        // Normalize state values to match the cleaned dropdown
+        function normalizeState(state) {
+            if (!state) return null;
+            
+            const stateMapping = {
+                'NSW': 'NSW',
+                'NSW ': 'NSW', 
+                'nsw': 'NSW',
+                'VIC': 'VIC',
+                'Vic': 'VIC',
+                'vic': 'VIC',
+                'QLD': 'QLD',
+                'QLD ': 'QLD',
+                'SA': 'SA',
+                'WA': 'WA',
+                'ACT': 'ACT',
+                'NT': 'NT',
+                'TAS': 'TAS',
+                'FNQ': 'QLD' // Far North Queensland -> QLD
+            };
+            
+            const trimmed = state.trim();
+            const normalized = stateMapping[trimmed] || trimmed;
+            
+            // Only return valid Australian states
+            const validStates = ['NSW', 'VIC', 'QLD', 'SA', 'WA', 'ACT', 'NT', 'TAS'];
+            const result = validStates.includes(normalized) ? normalized : null;
+            
+            // Debug logging for unexpected mappings
+            if (state && result && state !== result) {
+                console.log(`[NORMALIZE] "${state}" -> "${result}"`);
+            }
+            
+            return result;
+        }
+
+        // Get filtered customers based on current filter settings
+        function getFilteredCustomers() {
+            // Safety check: don't filter if data isn't loaded yet
+            if (!dataLoaded || !customers || customers.length === 0) {
+                console.log('[FILTER] Data not loaded yet, returning empty array');
+                return [];
+            }
+
+            const organizationFilter = document.getElementById('organizationFilter').value;
+            const regionFilter = document.getElementById('regionFilter').value;
+            const stateFilter = document.getElementById('stateFilter').value;
+            const jobCountFilter = document.getElementById('jobCountFilter').value;
+            const dateFromFilter = document.getElementById('dateFromFilter').value;
+            const dateToFilter = document.getElementById('dateToFilter').value;
+            const dataFilter = document.getElementById('dataFilter');
+            const showNonCustomersToggle = document.getElementById('showNonCustomersToggle');
+            const filterValue = dataFilter ? dataFilter.value : 'all';
+            const showNonCustomers = showNonCustomersToggle ? showNonCustomersToggle.checked : false;
+
+            console.log(`[FILTER] Current filters: org=${organizationFilter}, region=${regionFilter}, state=${stateFilter}, jobs=${jobCountFilter}, dateFrom=${dateFromFilter}, dateTo=${dateToFilter}, filterValue=${filterValue}, showNonCustomers=${showNonCustomers}`);
+
+            const filtered = customers.filter(customer => {
+                let organizationMatch = true;
+                let regionMatch = true;
+                let stateMatch = true;
+                let jobCountMatch = true;
+                let dateMatch = true;
+
+                // Organization type filter
+                if (organizationFilter !== 'all') organizationMatch = customer.organizationType === organizationFilter;
+
+                // Region filter  
+                if (regionFilter !== 'all') regionMatch = customer.region === regionFilter;
+
+                // State filter with normalization
+                if (stateFilter !== 'all') {
+                    const customerState = normalizeState(customer.location.state);
+                    stateMatch = customerState === stateFilter;
+                    
+                    // Debug logging for state filter issues
+                    if (stateFilter === 'QLD' && stateMatch && customerState !== 'QLD') {
+                        console.warn(`[FILTER] QLD filter issue: Customer ${customer.name} - Original state: "${customer.location.state}", Normalized: "${customerState}", Match: ${stateMatch}`);
+                    }
+                }
+
+                // Job count filter - only apply if showing customers with jobs
+                if (jobCountFilter !== 'all' && !showWithoutJobs) {
+                    const jobCount = customer.jobs ? customer.jobs.length : 0;
+                    switch (jobCountFilter) {
+                        case '1':
+                            jobCountMatch = jobCount === 1;
+                            break;
+                        case '2':
+                            jobCountMatch = jobCount === 2;
+                            break;
+                        case '3':
+                            jobCountMatch = jobCount === 3;
+                            break;
+                        case '4+':
+                            jobCountMatch = jobCount >= 4;
+                            break;
+                        default:
+                            jobCountMatch = true;
+                    }
+                }
+
+                // Date filter - only apply if showing customers with jobs
+                if ((dateFromFilter || dateToFilter) && !showWithoutJobs) {
+                    if (!customer.jobs || customer.jobs.length === 0) {
+                        dateMatch = false;
+                    } else {
+                        const customerJobsInRange = customer.jobs.filter(job => {
+                            if (!job.completedDate) return false;
+                            
+                            const jobDate = new Date(job.completedDate);
+                            let inRange = true;
+                            
+                            if (dateFromFilter) {
+                                const fromDate = new Date(dateFromFilter);
+                                inRange = inRange && jobDate >= fromDate;
+                            }
+                            
+                            if (dateToFilter) {
+                                const toDate = new Date(dateToFilter + 'T23:59:59'); // End of day
+                                inRange = inRange && jobDate <= toDate;
+                            }
+                            
+                            return inRange;
+                        });
+                        
+                        dateMatch = customerJobsInRange.length > 0;
+                    }
+                }
+
+                const finalMatch = organizationMatch && regionMatch && stateMatch && jobCountMatch && dateMatch;
+                
+                // Debug: Log non-QLD customers that pass QLD filter
+                if (stateFilter === 'QLD' && finalMatch && customer.location.state !== 'QLD') {
+                    console.warn(`[FILTER] ERROR: Non-QLD customer passed QLD filter: ${customer.name} (state: "${customer.location.state}")`);
+                }
+                
+                return finalMatch;
+            });
+
+            console.log(`[FILTER] Filtered ${filtered.length} customers from ${customers.length} total`);
+            
+            // Debug: For QLD filter, verify count matches expected (only when no other filters)
+            if (stateFilter === 'QLD' && organizationFilter === 'all' && regionFilter === 'all' && jobCountFilter === 'all') {
+                const expectedQLD = customers.filter(c => c.location.state === 'QLD').length;
+                console.log(`[FILTER] QLD Debug: Expected ${expectedQLD} direct QLD customers, got ${filtered.length} filtered customers`);
+                if (filtered.length !== expectedQLD) {
+                    console.warn(`[FILTER] QLD count mismatch! This suggests filtering logic issue.`);
+                }
+            }
+            
+            console.log(`[FILTER] Filtered from ${customers.length} to ${filtered.length} customers`);
+            
+            // Debug: Check if Wycheproof is in filtered results
+            const wycheproof = filtered.find(c => c.name && c.name.toLowerCase().includes('wycheproof'));
+            if (wycheproof) {
+                console.warn('⚠️ Wycheproof found in filtered results:', {
+                    name: wycheproof.name,
+                    hasJobs: wycheproof.jobs?.length || 0,
+                    hasOrders: wycheproof.orders?.length || 0,
+                    passedFilters: true
+                });
+            }
+            
+            return filtered;
+        }
+        
+
+        // Render customer list
+        function renderCustomerList() {
+            const filteredCustomers = getFilteredCustomers();
+
+            console.log(`🔍 Filtering: ${filteredCustomers.length} customers match current filters`);
+            
+            // Debug: Log first few filtered customers for QLD filter
+            if (document.getElementById('stateFilter').value === 'QLD') {
+                console.log('[DEBUG] First 5 QLD filtered customers:');
+                filteredCustomers.slice(0, 5).forEach(c => {
+                    console.log(`  - ${c.name} (${c.location.state})`);
+                });
+            }
+
+            // Update map with filtered customers
+            addMarkersToMap(filteredCustomers);
+        }
+
+        // Setup event listeners
+        function setupEventListeners() {
+            console.log('🔧 Setting up event listeners...');
+            
+            const organizationFilter = document.getElementById('organizationFilter');
+            const regionFilter = document.getElementById('regionFilter');
+            const stateFilter = document.getElementById('stateFilter');
+            const jobCountFilter = document.getElementById('jobCountFilter');
+            const dateFromFilter = document.getElementById('dateFromFilter');
+            const dateToFilter = document.getElementById('dateToFilter');
+            const dataFilter = document.getElementById('dataFilter');
+            const showNonCustomersToggle = document.getElementById('showNonCustomersToggle');
+            
+            console.log('🎛️ Found elements:', {
+                organizationFilter: !!organizationFilter,
+                regionFilter: !!regionFilter,
+                stateFilter: !!stateFilter,
+                jobCountFilter: !!jobCountFilter,
+                dateFromFilter: !!dateFromFilter,
+                dateToFilter: !!dateToFilter,
+                dataFilter: !!dataFilter,
+                showNonCustomersToggle: !!showNonCustomersToggle
+            });
+            
+            if (organizationFilter) {
+                organizationFilter.addEventListener('change', (e) => {
+                    console.log('Organization filter changed to:', e.target.value);
+                    renderCustomerList();
+                    updateStats();
+                });
+            }
+            
+            if (regionFilter) {
+                regionFilter.addEventListener('change', (e) => {
+                    console.log('Region filter changed to:', e.target.value);
+                    renderCustomerList();
+                    updateStats();
+                });
+            }
+            
+            if (stateFilter) {
+                stateFilter.addEventListener('change', (e) => {
+                    console.log('State filter changed to:', e.target.value);
+                    renderCustomerList();
+                    updateStats();
+                });
+            }
+            
+            if (jobCountFilter) {
+                jobCountFilter.addEventListener('change', (e) => {
+                    console.log('Job count filter changed to:', e.target.value);
+                    renderCustomerList();
+                    updateStats();
+                });
+            }
+            
+            if (dateFromFilter) {
+                dateFromFilter.addEventListener('change', (e) => {
+                    console.log('Date from filter changed to:', e.target.value);
+                    renderCustomerList();
+                    updateStats();
+                });
+            }
+            
+            if (dateToFilter) {
+                dateToFilter.addEventListener('change', (e) => {
+                    console.log('Date to filter changed to:', e.target.value);
+                    renderCustomerList();
+                    updateStats();
+                });
+            }
+            
+            // Data filter dropdown event listener
+            if (dataFilter) {
+                console.log('✅ Data filter dropdown found, adding event listener');
+                dataFilter.addEventListener('change', handleDataChange);
+            } else {
+                console.error('❌ Data filter dropdown not found!');
+            }
+
+            // Non-customers toggle event listener  
+            if (showNonCustomersToggle) {
+                console.log('✅ Non-customers toggle found, adding event listener');
+                showNonCustomersToggle.addEventListener('change', handleDataChange);
+                
+                // Add click event listener to the toggle container for better accessibility
+                const toggleContainer = showNonCustomersToggle.closest('.toggle-switch');
+                if (toggleContainer) {
+                    toggleContainer.addEventListener('click', function(e) {
+                        // Prevent double-triggering if clicking directly on input
+                        if (e.target === showNonCustomersToggle) return;
+                        
+                        console.log('🖱️ Non-customers toggle container clicked');
+                        showNonCustomersToggle.checked = !showNonCustomersToggle.checked;
+                        showNonCustomersToggle.dispatchEvent(new Event('change'));
+                    });
+                }
+            } else {
+                console.error('❌ Non-customers toggle not found!');
+            }
+            
+            console.log('✅ Added event listeners for new controls');
+            
+            // Data change handler function (for data filter dropdown)
+            async function handleDataChange(e) {
+                const dataFilter = document.getElementById('dataFilter');
+                const filterValue = dataFilter ? dataFilter.value : 'all';
+                console.log(`🔄 Data filter changed to: ${filterValue}`);
+                console.log(`📝 Current customers length before change: ${customers ? customers.length : 'N/A'}`);
+                
+                try {
+                    setFiltersEnabled(false, 'Loading different data view...');
+                    
+                    console.log('📡 Loading customers...');
+                    await loadCustomers();
+                    console.log(`📦 Loaded ${customers ? customers.length : 0} customers for filter: ${filterValue}`);
+                    
+                    console.log('🔧 Loading filter options...');
+                    await loadFilterOptions();
+                    
+                    console.log('📋 Updating legend...');
+                    updateLegend();
+                    
+                    console.log('🗺️ Rendering customer list...');
+                    renderCustomerList();
+                    
+                    console.log('📊 Updating stats...');
+                    updateStats();
+                    
+                    setFiltersEnabled(true);
+                    console.log('✅ Data change complete! If you still see Wycheproof, it\'s a display bug.');
+                } catch (error) {
+                    console.error('❌ Error during data change:', error);
+                    setFiltersEnabled(true);
+                }
+            }
+            
+            
+            // Search functionality event listeners
+            const addressSearch = document.getElementById('addressSearch');
+            const searchButton = document.getElementById('searchButton');
+            const clearSearchButton = document.getElementById('clearSearchButton');
+            const searchResults = document.getElementById('searchResults');
+            
+            if (addressSearch && searchButton) {
+                console.log('✅ Setting up search event listeners');
+                
+                // Search button click
+                searchButton.addEventListener('click', () => {
+                    const query = addressSearch.value.trim();
+                    if (query) {
+                        searchAddress(query);
+                    }
+                });
+                
+                // Enter key in search box
+                addressSearch.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const query = addressSearch.value.trim();
+                        if (query) {
+                            searchAddress(query);
+                        }
+                    }
+                });
+                
+                // Hide search results when clicking outside
+                document.addEventListener('click', (e) => {
+                    if (!addressSearch.contains(e.target) && 
+                        !searchButton.contains(e.target) && 
+                        !searchResults.contains(e.target)) {
+                        searchResults.style.display = 'none';
+                    }
+                });
+                
+                // Clear search results when input is cleared
+                addressSearch.addEventListener('input', (e) => {
+                    const hasValue = e.target.value.trim().length > 0;
+                    clearSearchButton.style.display = hasValue ? 'inline-block' : 'none';
+                    
+                    if (!hasValue) {
+                        searchResults.style.display = 'none';
+                        clearSearchMarkers();
+                    }
+                });
+                
+                // Clear search button
+                if (clearSearchButton) {
+                    clearSearchButton.addEventListener('click', () => {
+                        addressSearch.value = '';
+                        clearSearchButton.style.display = 'none';
+                        searchResults.style.display = 'none';
+                        clearSearchMarkers();
+                        addressSearch.focus();
+                    });
+                }
+            }
+            
+            console.log('Event listeners set up successfully');
+        }
+
+        // Get approximate coordinates for Australian cities
+        function getApproximateCoordinates(city, state) {
+            const coordinates = {
+                // Major cities
+                'Sydney': {lat: -33.8688, lng: 151.2093},
+                'Melbourne': {lat: -37.8136, lng: 144.9631},
+                'Brisbane': {lat: -27.4698, lng: 153.0251},
+                'Perth': {lat: -31.9505, lng: 115.8605},
+                'Adelaide': {lat: -34.9285, lng: 138.6007},
+                'Canberra': {lat: -35.2809, lng: 149.1300},
+                'Darwin': {lat: -12.4634, lng: 130.8456},
+                'Hobart': {lat: -42.8821, lng: 147.3272},
+                
+                // State defaults
+                'NSW': {lat: -33.8688, lng: 151.2093},
+                'VIC': {lat: -37.8136, lng: 144.9631},
+                'QLD': {lat: -27.4698, lng: 153.0251},
+                'WA': {lat: -31.9505, lng: 115.8605},
+                'SA': {lat: -34.9285, lng: 138.6007},
+                'ACT': {lat: -35.2809, lng: 149.1300},
+                'NT': {lat: -12.4634, lng: 130.8456},
+                'TAS': {lat: -42.8821, lng: 147.3272}
+            };
+            
+            // Try city name first
+            if (coordinates[city]) {
+                return coordinates[city];
+            }
+            
+            // Fall back to state
+            if (coordinates[state]) {
+                // Add small random offset to avoid overlapping markers
+                return {
+                    lat: coordinates[state].lat + (Math.random() - 0.5) * 2,
+                    lng: coordinates[state].lng + (Math.random() - 0.5) * 2
+                };
+            }
+            
+            // Default to center of Australia
+            return {lat: -25.2744, lng: 133.7751};
+        }
+
+        
+        // Initialize the application when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 Starting Customer Mapping Dashboard...');
+            loadGoogleMapsAPI();
+        });
+    </script>
+</body>
+</html>

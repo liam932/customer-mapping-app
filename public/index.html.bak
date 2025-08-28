@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Mapping Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f7fa;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .dashboard {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            height: calc(100vh - 80px);
+        }
+        
+        .sidebar {
+            background: white;
+            border-right: 1px solid #e1e8ed;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        .map-container {
+            position: relative;
+            background: white;
+        }
+        
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .controls {
+            margin-bottom: 20px;
+        }
+        
+        .filter-group {
+            margin-bottom: 15px;
+        }
+        
+        .filter-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #2c3e50;
+            cursor: pointer;
+        }
+        
+        .filter-group {
+            margin-bottom: 20px;
+            position: relative;
+        }
+        
+        .filter-group select, .filter-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            background-color: white;
+            cursor: pointer;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .filter-group select:hover {
+            border-color: #2196f3;
+        }
+        
+        .filter-group select:focus {
+            outline: none;
+            border-color: #2196f3;
+            box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.2);
+        }
+        
+        .filter-group select:disabled {
+            background-color: #f5f5f5;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        
+        .filter-group select option {
+            padding: 8px;
+        }
+        
+        .filter-group select::-ms-expand {
+            display: none;
+        }
+        
+        .filter-group select {
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            background-image: url('data:image/svg+xml;charset=US-ASCII,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 5"><path fill="%23666" d="M2 0L0 2h4L2 0zM2 5L0 3h4L2 5z"/></svg>');
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            background-size: 12px;
+            padding-right: 30px;
+        }
+        
+        .customer-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .customer-item {
+            padding: 12px;
+            border: 1px solid #e1e8ed;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: #f8f9fa;
+        }
+        
+        .customer-item:hover {
+            background: #e3f2fd;
+            border-color: #2196f3;
+            transform: translateY(-1px);
+        }
+        
+        .customer-item.selected {
+            background: #2196f3;
+            color: white;
+            border-color: #1976d2;
+        }
+        
+        .customer-name {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        
+        .customer-usage {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+        
+        .customer-usage small {
+            font-size: 10px;
+            opacity: 0.7;
+            display: block;
+            margin-top: 2px;
+        }
+        
+        .usage-high { color: #4caf50; }
+        .usage-medium { color: #ff9800; }
+        .usage-low { color: #f44336; }
+        
+        .legend {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 1000;
+        }
+        
+        .legend h4 {
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .stats-summary {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            text-align: center;
+        }
+        
+        .stat-item {
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 4px;
+        }
+        
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Customer Mapping Dashboard</h1>
+        <p>Visualize customer locations and service usage patterns</p>
+    </div>
+    
+    <div class="dashboard">
+        <div class="sidebar">
+            <div class="stats-summary">
+                <h3>Overview</h3>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-number" id="totalCustomers">0</div>
+                        <div class="stat-label">Total Organizations</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="schoolCount">0</div>
+                        <div class="stat-label">Schools</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="totalRevenue">$0</div>
+                        <div class="stat-label">Total Revenue</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="activeCustomers">0</div>
+                        <div class="stat-label">Recent Service</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="controls">
+                <h3>Filters</h3>
+                <div class="filter-group">
+                    <label for="organizationFilter">Organization Type</label>
+                    <select id="organizationFilter">
+                        <option value="all">All Organizations</option>
+                        <option value="school">School</option>
+                        <option value="university">University</option>
+                        <option value="industry">Industry</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label for="regionFilter">Region</label>
+                    <select id="regionFilter">
+                        <option value="all">All Regions</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label for="stateFilter">State</label>
+                    <select id="stateFilter">
+                        <option value="all">All States</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="customer-list" id="customerList">
+                <!-- Customer items will be populated here -->
+            </div>
+        </div>
+        
+        <div class="map-container">
+            <div id="map"></div>
+            
+            <div class="legend">
+                <h4>Service Recency</h4>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #4caf50;"></div>
+                    <span>Recent (< 12 months)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #ff9800;"></div>
+                    <span>Moderate (12-24 months)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #f44336;"></div>
+                    <span>Old (> 24 months)</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Google Maps API -->
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCoeX1oyR541LqXGORgrP3QTJAR8-9JC_I&callback=initMap"></script>
+
+    <script>
+        let map;
+        let customers = [];
+        let markers = [];
+        let selectedCustomer = null;
+        let infoWindow;
+        let geocoder;
+        let coordinateCache = new Map();
+
+        // Initialize the application (called by Google Maps API)
+        window.initMap = async function() {
+            // Initialize the map centered on Australia
+            map = new google.maps.Map(document.getElementById('map'), {
+                zoom: 5,
+                center: { lat: -25.2744, lng: 133.7751 },
+                mapTypeId: google.maps.MapTypeId.ROADMAP
+            });
+            
+            infoWindow = new google.maps.InfoWindow();
+            geocoder = new google.maps.Geocoder();
+            
+            console.log('🗺️ Google Maps initialized with geocoding support');
+            
+            await loadCustomers();
+            await loadFilterOptions();
+            updateStats();
+            renderCustomerList();
+            setupEventListeners();
+        }
+
+        // This function is now handled in the main initMap function above
+
+        // Load customer data from API
+        async function loadCustomers() {
+            try {
+                const response = await fetch('/api/customers');
+                customers = await response.json();
+                console.log(`Loaded ${customers.length} customers with job data`);
+                addMarkersToMap();
+            } catch (error) {
+                console.error('Error loading customers:', error);
+            }
+        }
+
+        // Load filter options from API
+        async function loadFilterOptions() {
+            try {
+                // Load regions
+                const regionsResponse = await fetch('/api/regions');
+                const regions = await regionsResponse.json();
+                const regionSelect = document.getElementById('regionFilter');
+                
+                if (regionSelect && regions.length > 0) {
+                    regions.forEach(region => {
+                        const option = document.createElement('option');
+                        option.value = region;
+                        option.textContent = region;
+                        regionSelect.appendChild(option);
+                    });
+                    console.log(`Loaded ${regions.length} regions`);
+                } else {
+                    console.warn('No regions loaded or region select not found');
+                }
+
+                // Load states
+                const statesResponse = await fetch('/api/states');
+                const states = await statesResponse.json();
+                const stateSelect = document.getElementById('stateFilter');
+                
+                if (stateSelect && states.length > 0) {
+                    states.forEach(state => {
+                        const option = document.createElement('option');
+                        option.value = state;
+                        option.textContent = state;
+                        stateSelect.appendChild(option);
+                    });
+                    console.log(`Loaded ${states.length} states`);
+                } else {
+                    console.warn('No states loaded or state select not found');
+                }
+            } catch (error) {
+                console.error('Error loading filter options:', error);
+            }
+        }
+
+        // Enhanced coordinate fetching with geocoding
+        async function getAccurateCoordinates(customer) {
+            // Check cache first
+            const cacheKey = `${customer.id}_${customer.contact.address}`;
+            if (coordinateCache.has(cacheKey)) {
+                return coordinateCache.get(cacheKey);
+            }
+            
+            // If coordinates exist and are valid, use them
+            if (customer.location.lat && customer.location.lng && 
+                customer.location.lat >= -44 && customer.location.lat <= -10 &&
+                customer.location.lng >= 113 && customer.location.lng <= 154) {
+                const coords = { lat: customer.location.lat, lng: customer.location.lng, source: 'database' };
+                coordinateCache.set(cacheKey, coords);
+                return coords;
+            }
+            
+            // Try geocoding the address
+            if (customer.contact.address && customer.contact.address.trim()) {
+                try {
+                    const coords = await geocodeCustomerAddress(customer);
+                    coordinateCache.set(cacheKey, coords);
+                    return coords;
+                } catch (error) {
+                    console.warn(`Geocoding failed for ${customer.name}:`, error);
+                }
+            }
+            
+            // Fall back to city/state approximation
+            const coords = getApproximateCoordinates(customer.location.city, customer.location.state);
+            coords.source = 'approximation';
+            coordinateCache.set(cacheKey, coords);
+            return coords;
+        }
+        
+        // Geocode a customer's address
+        async function geocodeCustomerAddress(customer) {
+            return new Promise((resolve, reject) => {
+                const fullAddress = `${customer.contact.address}, Australia`;
+                
+                geocoder.geocode({
+                    address: fullAddress,
+                    region: 'AU',
+                    componentRestrictions: { country: 'AU' }
+                }, (results, status) => {
+                    if (status === 'OK' && results && results.length > 0) {
+                        const location = results[0].geometry.location;
+                        const lat = location.lat();
+                        const lng = location.lng();
+                        
+                        // Validate coordinates are in Australia
+                        if (lat >= -44 && lat <= -10 && lng >= 113 && lng <= 154) {
+                            console.log(`✅ Geocoded ${customer.name}: ${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+                            resolve({ lat, lng, source: 'geocoded' });
+                        } else {
+                            console.warn(`❌ Invalid coordinates for ${customer.name}: ${lat}, ${lng}`);
+                            reject(new Error('Invalid coordinates'));
+                        }
+                    } else {
+                        reject(new Error(`Geocoding failed: ${status}`));
+                    }
+                });
+            });
+        }
+        
+        // Add customer markers to map
+        async function addMarkersToMap(customersToShow = null) {
+            // Clear existing markers
+            markers.forEach(marker => marker.setMap(null));
+            markers = [];
+
+            // Use filtered customers if provided, otherwise use all customers
+            const customersData = customersToShow || customers;
+
+            console.log(`\ud83d\uddfa\ufe0f Processing ${customersData.length} customers for map markers...`);
+
+            // Process customers sequentially to avoid overwhelming the geocoding API
+            for (let i = 0; i < customersData.length; i++) {
+                const customer = customersData[i];
+                const color = getServiceRecencyColor(customer.lastServiceDate);
+                const size = getRevenueSize(customer.totalRevenue);
+                
+                // Get accurate coordinates
+                const coords = await getAccurateCoordinates(customer);
+                
+                const marker = new google.maps.Marker({
+                    position: { lat: coords.lat, lng: coords.lng },
+                    map: map,
+                    icon: {
+                        path: google.maps.SymbolPath.CIRCLE,
+                        fillColor: color,
+                        fillOpacity: 0.8,
+                        strokeColor: '#fff',
+                        strokeWeight: 2,
+                        scale: size
+                    },
+                    title: `${customer.name} (${coords.source})`
+                });
+
+                // Calculate job statistics
+                const numJobs = customer.jobs ? customer.jobs.length : 0;
+                const avgUnits = numJobs > 0 ? Math.round(customer.jobs.reduce((sum, job) => sum + (job.units || 0), 0) / numJobs) : 0;
+                const lastServiceFormatted = customer.lastServiceDate ? new Date(customer.lastServiceDate).toLocaleDateString('en-AU') : 'Never';
+                
+                // Create popup content with coordinate source info
+                const coordInfo = coords.source === 'geocoded' ? '\u2705 Geocoded' : 
+                                 coords.source === 'database' ? '\ud83d\udcbe Database' : '\ud83d\uddfa\ufe0f Approximate';
+                
+                const popupContent = `
+                    <div style="min-width: 300px;">
+                        <h3 style="margin: 0 0 10px 0; color: #2c3e50;">${customer.name}</h3>
+                        <p><strong>\ud83d\udccd Location:</strong> ${customer.location.city}, ${customer.location.state}</p>
+                        <p><strong>\ud83c\udfe0 Address:</strong> ${customer.contact.address}</p>
+                        <p><strong>\ud83c\udf0f Region:</strong> ${customer.region || 'Unknown'}</p>
+                        <p><strong>\ud83d\uddfa\ufe0f Coordinates:</strong> ${coordInfo}</p>
+                        <p><strong>\ud83c\udfdb\ufe0f Type:</strong> ${customer.organizationType}</p>
+                        <p><strong>\ud83d\udd27 Jobs Completed:</strong> ${numJobs}</p>
+                        <p><strong>\ud83d\udce6 Avg Units per Job:</strong> ${avgUnits}</p>
+                        <p><strong>\ud83d\udcb0 Total Revenue:</strong> $${customer.totalRevenue.toLocaleString()}</p>
+                        <p><strong>\ud83d\udcc5 Last Service:</strong> ${lastServiceFormatted}</p>
+                        <p><strong>\ud83d\udce7 Email:</strong> <a href="mailto:${customer.contact.email}">${customer.contact.email}</a></p>
+                        <p><strong>\ud83d\udcde Phone:</strong> <a href="tel:${customer.contact.phone}">${customer.contact.phone}</a></p>
+                    </div>
+                `;
+                
+                // Add click event
+                marker.addListener('click', () => {
+                    infoWindow.setContent(popupContent);
+                    infoWindow.open(map, marker);
+                    selectCustomer(customer.id);
+                });
+
+                markers.push(marker);
+                
+                // Small delay to avoid hitting API rate limits
+                if (coords.source === 'geocoded' && i < customersData.length - 1) {
+                    await new Promise(resolve => setTimeout(resolve, 50));
+                }
+            }
+            
+            console.log(`\u2705 Added ${markers.length} markers to map with enhanced positioning`);
+                
+                // Get approximate coordinates if none provided
+                let lat = customer.location.lat;
+                let lng = customer.location.lng;
+                
+                if (!lat || !lng) {
+                    const coords = getApproximateCoordinates(customer.location.city, customer.location.state);
+                    lat = coords.lat;
+                    lng = coords.lng;
+                }
+
+                // Create custom marker icon
+                const marker = new google.maps.Marker({
+                    position: { lat: lat, lng: lng },
+                    map: map,
+                    icon: {
+                        path: google.maps.SymbolPath.CIRCLE,
+                        fillColor: color,
+                        fillOpacity: 0.8,
+                        strokeColor: '#fff',
+                        strokeWeight: 2,
+                        scale: size
+                    },
+                    title: customer.name
+                });
+
+                // Calculate job statistics
+                const numJobs = customer.jobs ? customer.jobs.length : 0;
+                const avgUnits = numJobs > 0 ? Math.round(customer.jobs.reduce((sum, job) => sum + (job.units || 0), 0) / numJobs) : 0;
+                const lastServiceFormatted = customer.lastServiceDate ? new Date(customer.lastServiceDate).toLocaleDateString('en-AU') : 'Never';
+                
+                // Create popup content
+                const popupContent = `
+                    <div style="min-width: 280px;">
+                        <h3 style="margin: 0 0 10px 0; color: #2c3e50;">${customer.name}</h3>
+                        <p><strong>📍 Location:</strong> ${customer.location.city}, ${customer.location.state}</p>
+                        <p><strong>🌏 Region:</strong> ${customer.region || 'Unknown'}</p>
+                        <p><strong>🏛️ Type:</strong> ${customer.organizationType}</p>
+                        <p><strong>🔧 Jobs Completed:</strong> ${numJobs}</p>
+                        <p><strong>📦 Avg Units per Job:</strong> ${avgUnits}</p>
+                        <p><strong>💰 Total Revenue:</strong> $${customer.totalRevenue.toLocaleString()}</p>
+                        <p><strong>📅 Last Service:</strong> ${lastServiceFormatted}</p>
+                        <p><strong>📧 Email:</strong> <a href="mailto:${customer.contact.email}">${customer.contact.email}</a></p>
+                        <p><strong>📞 Phone:</strong> <a href="tel:${customer.contact.phone}">${customer.contact.phone}</a></p>
+                    </div>
+                `;
+                
+                // Add click event
+                marker.addListener('click', () => {
+                    infoWindow.setContent(popupContent);
+                    infoWindow.open(map, marker);
+                    selectCustomer(customer.id);
+                });
+
+                markers.push(marker);
+            });
+        }
+
+        // Get color based on service recency
+        function getServiceRecencyColor(lastServiceDate) {
+            if (!lastServiceDate) return '#999999'; // Gray for no service data
+            
+            const lastService = new Date(lastServiceDate);
+            const now = new Date();
+            const monthsDiff = (now - lastService) / (1000 * 60 * 60 * 24 * 30.44); // Average days per month
+            
+            if (monthsDiff < 12) return '#4caf50'; // Green - recent (< 12 months)
+            if (monthsDiff < 24) return '#ff9800'; // Orange - moderate (12-24 months)
+            return '#f44336'; // Red - old (> 24 months)
+        }
+
+        // Get marker size based on total revenue
+        function getRevenueSize(totalRevenue) {
+            if (totalRevenue > 10000) return 12;
+            if (totalRevenue > 5000) return 10;
+            if (totalRevenue > 1000) return 8;
+            return 6;
+        }
+
+        // Select a customer
+        function selectCustomer(customerId) {
+            selectedCustomer = customerId;
+            const customer = customers.find(c => c.id === customerId);
+            
+            if (customer) {
+                // Get coordinates
+                let lat = customer.location.lat;
+                let lng = customer.location.lng;
+                
+                if (!lat || !lng) {
+                    const coords = getApproximateCoordinates(customer.location.city, customer.location.state);
+                    lat = coords.lat;
+                    lng = coords.lng;
+                }
+                
+                // Center map on customer
+                map.setCenter({ lat: lat, lng: lng });
+                map.setZoom(10);
+                
+                // Update UI
+                renderCustomerList();
+            }
+        }
+
+        // Update statistics based on filtered customers
+        function updateStats() {
+            const filteredCustomers = getFilteredCustomers();
+            const totalCustomers = filteredCustomers.length;
+            const schoolCount = filteredCustomers.filter(c => c.organizationType === 'school').length;
+            const totalRevenue = filteredCustomers.reduce((sum, c) => sum + c.totalRevenue, 0);
+            const recentCustomers = filteredCustomers.filter(c => {
+                if (!c.lastServiceDate) return false;
+                const lastService = new Date(c.lastServiceDate);
+                const twelveMonthsAgo = new Date();
+                twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
+                return lastService > twelveMonthsAgo;
+            }).length;
+
+            document.getElementById('totalCustomers').textContent = totalCustomers;
+            document.getElementById('schoolCount').textContent = schoolCount;
+            document.getElementById('totalRevenue').textContent = '$' + totalRevenue.toLocaleString();
+            document.getElementById('activeCustomers').textContent = recentCustomers;
+        }
+
+        // Get filtered customers based on current filter settings
+        function getFilteredCustomers() {
+            const organizationFilter = document.getElementById('organizationFilter').value;
+            const regionFilter = document.getElementById('regionFilter').value;
+            const stateFilter = document.getElementById('stateFilter').value;
+
+            return customers.filter(customer => {
+                let organizationMatch = true;
+                let regionMatch = true;
+                let stateMatch = true;
+
+                // Organization type filter
+                if (organizationFilter !== 'all') organizationMatch = customer.organizationType === organizationFilter;
+
+                // Region filter  
+                if (regionFilter !== 'all') regionMatch = customer.region === regionFilter;
+
+                // State filter
+                if (stateFilter !== 'all') stateMatch = customer.location.state === stateFilter;
+
+                return organizationMatch && regionMatch && stateMatch;
+            });
+        }
+
+        // Render customer list
+        function renderCustomerList() {
+            const listContainer = document.getElementById('customerList');
+            const filteredCustomers = getFilteredCustomers();
+
+            // Update map with filtered customers
+            addMarkersToMap(filteredCustomers);
+
+            listContainer.innerHTML = filteredCustomers.map(customer => {
+                const color = getServiceRecencyColor(customer.lastServiceDate);
+                const isSelected = selectedCustomer === customer.id ? 'selected' : '';
+                const lastServiceFormatted = customer.lastServiceDate ? new Date(customer.lastServiceDate).toLocaleDateString('en-AU') : 'Never';
+
+                return `
+                    <div class="customer-item ${isSelected}" onclick="selectCustomer(${customer.id})" style="border-left: 4px solid ${color};">
+                        <div class="customer-name">${customer.name}</div>
+                        <div class="customer-usage">
+                            ${customer.organizationType} • ${customer.location.city}, ${customer.location.state}<br>
+                            <small>Revenue: $${customer.totalRevenue.toLocaleString()} • Last Service: ${lastServiceFormatted}</small>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Setup event listeners
+        function setupEventListeners() {
+            const organizationFilter = document.getElementById('organizationFilter');
+            const regionFilter = document.getElementById('regionFilter');
+            const stateFilter = document.getElementById('stateFilter');
+            
+            if (organizationFilter) {
+                organizationFilter.addEventListener('change', (e) => {
+                    console.log('Organization filter changed to:', e.target.value);
+                    renderCustomerList();
+                    updateStats();
+                });
+            }
+            
+            if (regionFilter) {
+                regionFilter.addEventListener('change', (e) => {
+                    console.log('Region filter changed to:', e.target.value);
+                    renderCustomerList();
+                    updateStats();
+                });
+            }
+            
+            if (stateFilter) {
+                stateFilter.addEventListener('change', (e) => {
+                    console.log('State filter changed to:', e.target.value);
+                    renderCustomerList();
+                    updateStats();
+                });
+            }
+            
+            console.log('Event listeners set up successfully');
+        }
+
+        // Get approximate coordinates for Australian cities
+        function getApproximateCoordinates(city, state) {
+            const coordinates = {
+                // Major cities
+                'Sydney': {lat: -33.8688, lng: 151.2093},
+                'Melbourne': {lat: -37.8136, lng: 144.9631},
+                'Brisbane': {lat: -27.4698, lng: 153.0251},
+                'Perth': {lat: -31.9505, lng: 115.8605},
+                'Adelaide': {lat: -34.9285, lng: 138.6007},
+                'Canberra': {lat: -35.2809, lng: 149.1300},
+                'Darwin': {lat: -12.4634, lng: 130.8456},
+                'Hobart': {lat: -42.8821, lng: 147.3272},
+                
+                // State defaults
+                'NSW': {lat: -33.8688, lng: 151.2093},
+                'VIC': {lat: -37.8136, lng: 144.9631},
+                'QLD': {lat: -27.4698, lng: 153.0251},
+                'WA': {lat: -31.9505, lng: 115.8605},
+                'SA': {lat: -34.9285, lng: 138.6007},
+                'ACT': {lat: -35.2809, lng: 149.1300},
+                'NT': {lat: -12.4634, lng: 130.8456},
+                'TAS': {lat: -42.8821, lng: 147.3272}
+            };
+            
+            // Try city name first
+            if (coordinates[city]) {
+                return coordinates[city];
+            }
+            
+            // Fall back to state
+            if (coordinates[state]) {
+                // Add small random offset to avoid overlapping markers
+                return {
+                    lat: coordinates[state].lat + (Math.random() - 0.5) * 2,
+                    lng: coordinates[state].lng + (Math.random() - 0.5) * 2
+                };
+            }
+            
+            // Default to center of Australia
+            return {lat: -25.2744, lng: 133.7751};
+        }
+
+        // Initialize the app when page loads
+        init();
+    </script>
+</body>
+</html>
