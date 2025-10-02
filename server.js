@@ -97,9 +97,13 @@ app.post('/api/logout', (req, res) => {
   res.json({ success: true, message: 'Logout successful' });
 });
 
-// Serve login page without authentication
+// Serve login page and logo without authentication
 app.get('/login.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'login.html'));
+});
+
+app.get('/edusupplies_logo.png', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'edusupplies_logo.png'));
 });
 
 // Authentication check middleware for protected routes
