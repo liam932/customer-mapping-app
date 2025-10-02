@@ -38,6 +38,11 @@ app.use(session({
 
 // Authentication middleware
 function requireAuth(req, res, next) {
+  // Skip authentication in development environment
+  if (process.env.NODE_ENV === 'development') {
+    return next();
+  }
+
   if (req.session && req.session.authenticated) {
     return next();
   } else {
@@ -99,9 +104,15 @@ app.get('/login.html', (req, res) => {
 
 // Authentication check middleware for protected routes
 function checkAuth(req, res, next) {
+  // Skip authentication in development environment
+  if (process.env.NODE_ENV === 'development') {
+    console.log('🔓 Development mode - skipping authentication');
+    return next();
+  }
+
   console.log(`🔍 Auth check for ${req.path} - Session ID: ${req.sessionID || 'none'}`);
   console.log(`🔐 Session authenticated: ${req.session?.authenticated || 'false'}`);
-  
+
   if (req.session && req.session.authenticated) {
     console.log('✅ Authentication passed');
     return next();
