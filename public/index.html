@@ -962,8 +962,8 @@
             });
             
             console.log(`⚡ Fast processing ${preGeocodedCustomers.length} pre-geocoded customers...`);
-            console.log(`🐌 Slow processing ${needsGeocodingCustomers.length} customers needing geocoding...`);
-            
+            console.log(`🐌 Background geocoding ${needsGeocodingCustomers.length} customers...`);
+
             // Fast batch processing for pre-geocoded customers (no delays needed)
             preGeocodedCustomers.forEach(customer => {
                 const dataFilter = document.getElementById('dataFilter');
@@ -1500,6 +1500,7 @@
             );
             let totalOrdersPerYear = 0;
             let customerYears = 0;
+            const today = new Date();
 
             customersWithTransactions.forEach(customer => {
                 const allDates = [];
@@ -1514,16 +1515,18 @@
                 // Collect order dates
                 if (customer.orders) {
                     customer.orders.forEach(order => {
-                        if (order.completedDate) allDates.push(new Date(order.completedDate));
+                        const dateField = order.completedDate || order.completed_date;
+                        if (dateField) allDates.push(new Date(dateField));
                     });
                 }
 
                 if (allDates.length === 0) return;
 
                 const firstTransaction = new Date(Math.min(...allDates));
-                const lastTransaction = new Date(Math.max(...allDates));
-                const yearsDiff = (lastTransaction - firstTransaction) / (1000 * 60 * 60 * 24 * 365.25);
-                const years = yearsDiff > 0 ? yearsDiff : 1; // At least 1 year
+                // Use today as the end date instead of last transaction
+                const yearsDiff = (today - firstTransaction) / (1000 * 60 * 60 * 24 * 365.25);
+                // Use minimum of 0.5 years for single transaction customers
+                const years = yearsDiff > 0 ? yearsDiff : 0.5;
 
                 const totalTransactions = (customer.jobs?.length || 0) + (customer.orders?.length || 0);
                 totalOrdersPerYear += totalTransactions / years;
@@ -1533,11 +1536,14 @@
             const avgOrdersPerYear = customerYears > 0 ? (totalOrdersPerYear / customerYears).toFixed(1) : 0;
 
             // 3. Average Customer Lifetime (in years, from first to last interaction)
+            // For active customers (ordered in last 12 months), use today as end date
+            // For inactive customers, use their last transaction date
             const customersWithInteractions = filteredCustomers.filter(c =>
                 (c.jobs && c.jobs.length > 0) || (c.orders && c.orders.length > 0)
             );
             let totalLifetimeYears = 0;
             let customersWithLifetime = 0;
+            const oneYearAgo = new Date(today.getTime() - (365.25 * 24 * 60 * 60 * 1000));
 
             customersWithInteractions.forEach(customer => {
                 const allDates = [];
@@ -1552,15 +1558,21 @@
                 // Collect all order dates
                 if (customer.orders) {
                     customer.orders.forEach(order => {
-                        if (order.completedDate) allDates.push(new Date(order.completedDate));
+                        const dateField = order.completedDate || order.completed_date;
+                        if (dateField) allDates.push(new Date(dateField));
                     });
                 }
 
                 if (allDates.length > 0) {
                     const firstInteraction = new Date(Math.min(...allDates));
                     const lastInteraction = new Date(Math.max(...allDates));
-                    const lifetimeYears = (lastInteraction - firstInteraction) / (1000 * 60 * 60 * 24 * 365.25);
-                    totalLifetimeYears += lifetimeYears > 0 ? lifetimeYears : 1; // At least 1 year
+
+                    // If customer ordered in last 12 months, consider them active (use today)
+                    // Otherwise use their last transaction date
+                    const endDate = lastInteraction > oneYearAgo ? today : lastInteraction;
+
+                    const lifetimeYears = (endDate - firstInteraction) / (1000 * 60 * 60 * 24 * 365.25);
+                    totalLifetimeYears += lifetimeYears > 0 ? lifetimeYears : 0.5; // At least 0.5 year
                     customersWithLifetime++;
                 }
             });
@@ -1694,8 +1706,8 @@
                     }
                 }
 
-                // Job count filter - only apply if showing customers with jobs
-                if (jobCountFilter !== 'all' && !showWithoutJobs) {
+                // Job count filter
+                if (jobCountFilter !== 'all') {
                     const jobCount = customer.jobs ? customer.jobs.length : 0;
                     switch (jobCountFilter) {
                         case '1':
@@ -1715,8 +1727,8 @@
                     }
                 }
 
-                // Date filter - only apply if showing customers with jobs
-                if ((dateFromFilter || dateToFilter) && !showWithoutJobs) {
+                // Date filter
+                if (dateFromFilter || dateToFilter) {
                     if (!customer.jobs || customer.jobs.length === 0) {
                         dateMatch = false;
                     } else {
