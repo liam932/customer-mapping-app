@@ -38,11 +38,24 @@
             border-radius: 20px;
             margin: 0 auto 30px;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
             color: white;
-            font-size: 32px;
+        }
+
+        .logo-t {
+            font-size: 48px;
             font-weight: bold;
+            line-height: 1;
+            margin-bottom: -5px;
+        }
+
+        .logo-traction {
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
         }
         
         h1 {
@@ -185,7 +198,10 @@
 </head>
 <body>
     <div class="login-container">
-        <div class="logo">📍</div>
+        <div class="logo">
+            <div class="logo-t">T</div>
+            <div class="logo-traction">traction</div>
+        </div>
         <h1>Customer Mapping</h1>
         <p class="subtitle">Access your customer analytics dashboard</p>
         
